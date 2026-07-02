@@ -14,51 +14,57 @@ export default function NawafilSection({ nawafil = {}, onToggle }) {
   const count = NAWAFIL.filter((n) => nawafil[n.key]).length;
 
   return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden">
+    <div className="bg-gradient-to-br from-green-50 to-white dark:from-green-950/20 dark:to-card border border-green-200 dark:border-green-800 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between p-4 text-left"
+        className="w-full flex items-center justify-between px-5 py-4 text-left"
       >
         <div>
-          <p className="text-sm font-semibold text-foreground">
-            Voluntary Prayers
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-lg font-bold text-foreground">Voluntary Prayers</p>
+          <p className="text-sm text-muted-foreground mt-1">
             {count > 0 ? `${count} logged today` : "Nawafil — tap to expand"}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {count > 0 && (
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+            <span className="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 text-xs font-bold">
               {count}
             </span>
           )}
           {open ? (
-            <ChevronUp size={16} className="text-muted-foreground" />
+            <ChevronUp
+              size={16}
+              className="text-green-700 dark:text-green-400"
+            />
           ) : (
-            <ChevronDown size={16} className="text-muted-foreground" />
+            <ChevronDown
+              size={16}
+              className="text-green-700 dark:text-green-400"
+            />
           )}
         </div>
       </button>
 
       {open && (
-        <div className="border-t border-border divide-y divide-border">
+        <div className="border-t border-green-100 dark:border-green-800 p-4 space-y-3">
           {NAWAFIL.map(({ key, label, desc }) => (
             <button
               key={key}
               onClick={() => onToggle(key)}
-              className={`w-full flex items-center justify-between px-4 py-3.5 text-left transition-colors duration-100 ${
+              className={`w-full flex items-center justify-between rounded-2xl px-4 py-4 text-left border transition-all duration-300 ${
                 nawafil[key]
-                  ? "bg-green-50 dark:bg-green-950/30"
-                  : "hover:bg-muted/50"
+                  ? "bg-green-50 border-green-300 shadow-sm dark:bg-green-950/30 dark:border-green-700"
+                  : "bg-white dark:bg-card border-green-100 dark:border-green-800 hover:border-green-300 hover:shadow-sm"
               }`}
             >
               <div>
-                <p className="text-sm font-medium text-foreground">{label}</p>
+                <p className="text-base font-semibold text-foreground">
+                  {label}
+                </p>
                 <p className="text-xs text-muted-foreground">{desc}</p>
               </div>
               <div
-                className={`w-5 h-5 rounded-full flex items-center justify-center border-2 transition-colors duration-150 flex-shrink-0 ${
+                className={`w-7 h-7 rounded-full shadow-sm flex items-center justify-center border-2 transition-colors duration-150 flex-shrink-0 ${
                   nawafil[key]
                     ? "bg-green-600 border-green-600"
                     : "border-border"
@@ -66,7 +72,7 @@ export default function NawafilSection({ nawafil = {}, onToggle }) {
               >
                 {nawafil[key] && (
                   <svg
-                    className="w-3 h-3 text-white"
+                    className="w-4 h-4 text-white"
                     fill="none"
                     viewBox="0 0 12 12"
                   >

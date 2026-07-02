@@ -66,14 +66,19 @@ export async function fetchHijriDate(date = new Date()) {
 
 export function getCurrentLocation() {
   return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error("Geolocation not supported"));
-      return;
-    }
     navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      (err) => reject(err),
-      { timeout: 10000 },
+      (position) => {
+        alert("SUCCESS");
+
+        resolve({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        });
+      },
+      (error) => {
+        alert(error.message);
+        reject(error);
+      },
     );
   });
 }

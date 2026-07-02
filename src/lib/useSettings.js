@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "./AuthContext";
 
 const DEFAULTS = {
   calculation_method: 2,
@@ -16,40 +17,89 @@ const DEFAULTS = {
 };
 
 export function useSettings() {
+  const { user } = useAuth();
+
   const [settings, setSettings] = useState(DEFAULTS);
-  const [settingsId, setSettingsId] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    load();
-  }, []);
+    if (user) {
+      load();
+    }
+  }, [user]);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", !!settings.dark_mode);
+    document.documentElement.classList.toggle("dark", settings.dark_mode);
   }, [settings.dark_mode]);
 
   async function load() {
-    const list = await base44.entities.UserSettings.list();
-    if (list.length > 0) {
-      setSettings({ ...DEFAULTS, ...list[0] });
-      setSettingsId(list[0].id);
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("user_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    console.log("Settings Data:", data);
+    console.log("Settings Error:", error);
+
+    if (data) {
+      setSettings({
+        ...DEFAULTS,
+        ...data,
+      });
+    } else {
+      // First time user
+      const { error: insertError } = await supabase
+        .from("user_settings")
+        .insert({
+          user_id: user.id,
+          ...DEFAULTS,
+        });
+
+      console.log("Insert Settings Error:", insertError);
+
+      setSettings(DEFAULTS);
     }
+
     setLoading(false);
   }
 
-  const updateSettings = useCallback(
-    async (updates) => {
-      const next = { ...settings, ...updates };
-      setSettings(next);
-      if (settingsId) {
-        await base44.entities.UserSettings.update(settingsId, updates);
-      } else {
-        const created = await base44.entities.UserSettings.create(next);
-        setSettingsId(created.id);
-      }
-    },
-    [settings, settingsId],
-  );
+const updateSettings = useCallback(
+  async (updates) => {
+    console.log("========== UPDATE SETTINGS ==========");
+    console.log("updates =", updates);
 
-  return { settings, updateSettings, loading };
+    const { data, error } = await supabase
+      .from("user_settings")
+      .update(updates)
+      .eq("user_id", user.id)
+      .select();
+
+    console.log("UPDATE DATA:", data);
+    console.log("UPDATE ERROR:", error);
+
+    if (error) {
+      console.error("THROWING ERROR");
+      throw error;
+    }
+
+    console.log("BEFORE setSettings");
+
+    if (data?.length) {
+      setSettings(data[0]);
+    }
+
+    console.log("AFTER setSettings");
+
+    return data;
+  },
+  [user],
+);
+  return {
+    settings,
+    updateSettings,
+    loading,
+  };
 }

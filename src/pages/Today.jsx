@@ -15,6 +15,7 @@ import EndOfDayReflectionCard from "@/components/EndOfDayReflectionCard";
 import CelebrationBanner from "@/components/CelebrationBanner";
 import UndoBanner, { useUndoAction } from "@/components/UndoBanner";
 import NextPrayerHero from "@/components/NextPrayerHero";
+// import NearbyMosquesCard from "@/components/NearbyMosques";
 import IntelligencePreviewCard from "@/components/IntelligencePreviewCard";
 import { useDailyLog, fetchAllLogs } from "@/lib/useDailyLog";
 import { useSettings } from "@/lib/useSettings";
@@ -139,15 +140,43 @@ export default function Today() {
     }
   }
 
+
   async function handleLocation() {
-    setLocStatus("loading");
-    const pos = await getCurrentLocation();
-    await updateSettings({ latitude: pos.lat, longitude: pos.lon });
-    await loadTimes(pos.lat, pos.lon);
-    setLocStatus("done");
-    if ("Notification" in window && Notification.permission === "default")
-      Notification.requestPermission();
+    console.log(getCurrentLocation);
   }
+
+// async function handleLocation() {
+//   console.clear();
+
+//   console.log("1 START");
+
+//   try {
+//     console.log("2 Before getCurrentLocation");
+
+//     const pos = await getCurrentLocation();
+
+//     console.log("3 Position:", pos);
+
+//     console.log("4 Before updateSettings");
+
+//     await updateSettings({
+//       latitude: pos.lat,
+//       longitude: pos.lon,
+//     });
+
+//     console.log("5 After updateSettings");
+
+//     console.log("6 Before loadTimes");
+
+//     await loadTimes(pos.lat, pos.lon);
+
+//     console.log("7 After loadTimes");
+//   } catch (e) {
+//     console.error("ERROR:", e);
+//   }
+
+//   console.log("8 END");
+// }
 
   // Undo-wrapped prayer status setter
   async function handleSetPrayerStatus(prayer, newStatus) {
@@ -183,9 +212,13 @@ export default function Today() {
   const { current: streak } = useMemo(() => computeStreaks(allLogs), [allLogs]);
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div
+      className="min-h-screen bg-white/90
+dark:bg-background/90
+backdrop-blur-xl pb-28"
+    >
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border px-4 py-3.5">
+      <header className="bg-background/95 backdrop-blur-md border-b border-border px-4 py-4">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-foreground leading-tight">
@@ -194,6 +227,32 @@ export default function Today() {
             {hijriStr && (
               <p className="text-xs text-muted-foreground mt-0.5">{hijriStr}</p>
             )}
+            <div
+              className="
+    mt-1
+    animate-in
+    fade-in
+    slide-in-from-left-2
+    duration-500
+  "
+            >
+              <p className="text-sm font-semibold text-green-600">
+                Assalamu Alaikum 🤲
+              </p>
+
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {new Date().getHours() < 12
+                  ? "☀️ Good Morning"
+                  : new Date().getHours() < 18
+                    ? "🌿 Good Afternoon"
+                    : "🌙 Good Evening"}
+                <span className="mx-1">•</span>
+                <span className="font-semibold text-green-700 dark:text-green-400">
+                  🔥 {streak} Day Streak
+                </span>
+              </p>
+            </div>
+            <div className="w-14 h-1 rounded-full bg-green-600 mt-2" />
           </div>
           <div className="flex items-center gap-2">
             {isExempt && (
@@ -208,7 +267,18 @@ export default function Today() {
             )}
             <button
               onClick={() => setSettingsOpen(true)}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              className="
+w-11
+h-11
+rounded-full
+bg-green-50
+border
+border-green-100
+shadow-sm
+hover:shadow-md
+hover:scale-105
+transition-all
+duration-300 flex items-center justify-center rounded-full bg-secondary text-muted-foreground hover:text-foreground transition-colors"
             >
               <Settings size={17} />
             </button>
@@ -247,7 +317,7 @@ export default function Today() {
         </div>
       )}
 
-      <div className="max-w-md mx-auto px-4 pt-4 space-y-3">
+      <div className="max-w-md mx-auto px-4 pt-4 space-y-5">
         {/* Next Prayer Hero */}
         <NextPrayerHero
           rawTimings={rawTimings}
@@ -260,6 +330,10 @@ export default function Today() {
           longitude={settings.longitude}
           onOpen={() => setQiblaOpen(true)}
         />
+        {/* <NearbyMosquesCard
+          latitude={settings.latitude}
+          longitude={settings.longitude}
+        /> */}
 
         {/* Intelligence Preview */}
         {!loading && allLogs.length > 0 && (
@@ -299,7 +373,15 @@ export default function Today() {
               .map((_, i) => (
                 <div
                   key={i}
-                  className="h-28 rounded-2xl bg-muted animate-pulse"
+                  className="
+h-32
+rounded-3xl
+bg-gradient-to-r
+from-gray-100
+via-gray-50
+to-gray-100
+animate-pulse
+"
                 />
               ))
           : PRAYERS.map((prayer) => (
@@ -346,7 +428,7 @@ export default function Today() {
           onTimeCount + lateCount + missedCount > 0 && (
             <div className="bg-card border border-border rounded-2xl p-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Today
+                Today's Progress
               </p>
               <div className="grid grid-cols-3 gap-2">
                 <div className="text-center bg-green-50 dark:bg-green-950/30 rounded-xl py-3">

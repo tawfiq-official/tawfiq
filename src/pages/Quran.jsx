@@ -13,6 +13,17 @@ import {
   Clock,
   Target,
   BarChart2,
+  Copy,
+  Minus,
+  Plus,
+  CheckCircle2,
+  Hash,
+  AlignRight,
+  Repeat,
+  Type,
+  BookText,
+  Volume2,
+  Palette,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import SectionSwitcher from "@/components/SectionSwitcher";
@@ -34,11 +45,10 @@ const LS = {
 };
 const KEY_LAST = "tawfiq_quran_last";
 const KEY_BKMK = "tawfiq_quran_bookmarks";
-const KEY_HIST = "tawfiq_quran_history";
-const KEY_PAGES = "tawfiq_quran_pages_log"; // { 'yyyy-mm-dd': pagesRead }
+const KEY_PAGES = "tawfiq_quran_pages_log";
 const KEY_GOAL = "tawfiq_quran_daily_goal";
 
-// ─── Static Surah list (name, englishName, numberOfAyahs, revelationType) ────
+// ─── Static Surah & Juz Lists ────────────────────────────────────────────────
 const SURAHS = [
   [1, "Al-Fatihah", "The Opening", 7, "Meccan"],
   [2, "Al-Baqarah", "The Cow", 286, "Medinan"],
@@ -156,7 +166,6 @@ const SURAHS = [
   [114, "An-Nas", "Mankind", 6, "Meccan"],
 ];
 
-// JUZ boundaries (surah, ayah) for juz 1-30
 const JUZ = [
   [1, 1],
   [2, 142],
@@ -200,56 +209,113 @@ function juzOfAyah(surah, ayah) {
 
 // ─── API helpers ─────────────────────────────────────────────────────────────
 const API = "https://api.alquran.cloud/v1";
-const AUDIO_BASE = "https://cdn.islamic.network/quran/audio/128/ar.alafasy";
 
 async function fetchSurah(number, edition = "en.asad") {
-  const [arRes, enRes] = await Promise.all([
+  const [arRes, enRes, transRes] = await Promise.all([
     fetch(`${API}/surah/${number}`).then((r) => r.json()),
     fetch(`${API}/surah/${number}/${edition}`).then((r) => r.json()),
+    fetch(`${API}/surah/${number}/en.transliteration`).then((r) => r.json()),
   ]);
   const ar = arRes.data?.ayahs || [];
   const en = enRes.data?.ayahs || [];
+  const tr = transRes.data?.ayahs || [];
   return ar.map((v, i) => ({
     number: v.numberInSurah,
     globalNumber: v.number,
     arabic: v.text,
     translation: en[i]?.text || "",
+    transliteration: tr[i]?.text || "",
+    surahName: arRes.data?.englishName,
+    surahNumber: number,
+  }));
+}
+
+async function fetchJuzData(number, edition = "en.asad") {
+  const [arRes, enRes, transRes] = await Promise.all([
+    fetch(`${API}/juz/${number}`).then((r) => r.json()),
+    fetch(`${API}/juz/${number}/${edition}`).then((r) => r.json()),
+    fetch(`${API}/juz/${number}/en.transliteration`).then((r) => r.json()),
+  ]);
+  const ar = arRes.data?.ayahs || [];
+  const en = enRes.data?.ayahs || [];
+  const tr = transRes.data?.ayahs || [];
+  return ar.map((v, i) => ({
+    number: v.numberInSurah,
+    globalNumber: v.number,
+    arabic: v.text,
+    translation: en[i]?.text || "",
+    transliteration: tr[i]?.text || "",
+    surahName: v.surah.englishName,
+    surahNumber: v.surah.number,
   }));
 }
 
 const EDITIONS = [
   { id: "en.asad", label: "Asad (English)" },
-  { id: "en.pickthall", label: "Pickthall (English)" },
   { id: "en.sahih", label: "Saheeh International" },
-  { id: "fr.hamidullah", label: "Hamidullah (French)" },
   { id: "ur.jalandhry", label: "Jalandhry (Urdu)" },
 ];
 
-// ─── Main Page ───────────────────────────────────────────────────────────────
+const RECITERS = [
+  { id: "ar.alafasy", label: "Mishary Alafasy" },
+  { id: "ar.husary", label: "Mahmoud Al Husary" },
+];
+
 const TABS = [
   { id: "read", label: "Read" },
   { id: "hadith", label: "Hadith" },
-  { id: "bookmarks", label: "Bookmarks" },
+  { id: "bookmarks", label: "Saved" },
   { id: "insights", label: "Insights" },
 ];
 
+// ─── Main Page ───────────────────────────────────────────────────────────────
 export default function QuranPage() {
   const [tab, setTab] = useState("read");
-  const [view, setView] = useState("list"); // list | reader
+  const [view, setView] = useState("list");
+  const [browseMode, setBrowseMode] = useState("surah");
+
   const [selectedSurah, setSelectedSurah] = useState(null);
+  const [selectedJuz, setSelectedJuz] = useState(null);
   const [verses, setVerses] = useState([]);
   const [loadingVerses, setLoadingVerses] = useState(false);
   const [search, setSearch] = useState("");
+
   const [bookmarks, setBookmarks] = useState(() => LS.get(KEY_BKMK, []));
   const [edition, setEdition] = useState(() =>
     LS.get("tawfiq_quran_edition", "en.asad"),
   );
+  const [reciter, setReciter] = useState(() =>
+    LS.get("tawfiq_quran_reciter", "ar.alafasy"),
+  );
+  const [fontSize, setFontSize] = useState(() =>
+    LS.get("tawfiq_quran_fontsize", 30),
+  );
+
   const [showWordByWord, setShowWordByWord] = useState(false);
+  const [showTransliteration, setShowTransliteration] = useState(() =>
+    LS.get("tawfiq_quran_transliteration", false),
+  );
+  const [showTajweed, setShowTajweed] = useState(() =>
+    LS.get("tawfiq_quran_tajweed", false),
+  );
+  const [readingMode, setReadingMode] = useState(() =>
+    LS.get("tawfiq_quran_reading_mode", "translation"),
+  );
+
+  const [isAutoPlay, setIsAutoPlay] = useState(false);
   const [playingAyah, setPlayingAyah] = useState(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
+
   const [dailyGoal, setDailyGoal] = useState(() => LS.get(KEY_GOAL, 2));
+
   const audioRef = useRef(null);
+  const verseRefs = useRef({});
+  const stateRef = useRef({ isAutoPlay, verses });
   const lastRead = LS.get(KEY_LAST, null);
+
+  useEffect(() => {
+    stateRef.current = { isAutoPlay, verses };
+  }, [isAutoPlay, verses]);
 
   const filteredSurahs = useMemo(() => {
     if (!search) return SURAHS;
@@ -264,6 +330,7 @@ export default function QuranPage() {
 
   async function openSurah(surahNum) {
     setSelectedSurah(surahNum);
+    setSelectedJuz(null);
     setView("reader");
     setLoadingVerses(true);
     setVerses([]);
@@ -275,6 +342,7 @@ export default function QuranPage() {
       ayah: 1,
       name: SURAHS[surahNum - 1][1],
     });
+
     const today = new Date().toISOString().slice(0, 10);
     const pages = LS.get(KEY_PAGES, {});
     pages[today] =
@@ -282,30 +350,34 @@ export default function QuranPage() {
     LS.set(KEY_PAGES, pages);
   }
 
-  function toggleBookmark(surahNum, ayahNum) {
-    const key = `${surahNum}:${ayahNum}`;
-    const exists = bookmarks.find((b) => b.key === key);
-    let next;
-    if (exists) {
-      next = bookmarks.filter((b) => b.key !== key);
-    } else {
-      next = [
-        ...bookmarks,
-        {
-          key,
-          surah: surahNum,
-          ayah: ayahNum,
-          surahName: SURAHS[surahNum - 1][1],
-          text: verses.find((v) => v.number === ayahNum)?.arabic || "",
-        },
-      ];
-    }
-    setBookmarks(next);
-    LS.set(KEY_BKMK, next);
+  async function openJuz(juzNum) {
+    setSelectedJuz(juzNum);
+    setSelectedSurah(null);
+    setView("reader");
+    setLoadingVerses(true);
+    setVerses([]);
+    const data = await fetchJuzData(juzNum, edition).catch(() => []);
+    setVerses(data);
+    setLoadingVerses(false);
   }
 
-  function isBookmarked(surahNum, ayahNum) {
-    return bookmarks.some((b) => b.key === `${surahNum}:${ayahNum}`);
+  function toggleBookmark(surahNum, ayahNum, ayahText, surahName) {
+    const key = `${surahNum}:${ayahNum}`;
+    const exists = bookmarks.find((b) => b.key === key);
+    let next = exists
+      ? bookmarks.filter((b) => b.key !== key)
+      : [
+          ...bookmarks,
+          {
+            key,
+            surah: surahNum,
+            ayah: ayahNum,
+            surahName: surahName || SURAHS[surahNum - 1][1],
+            text: ayahText || "",
+          },
+        ];
+    setBookmarks(next);
+    LS.set(KEY_BKMK, next);
   }
 
   function playAyah(globalNumber) {
@@ -318,31 +390,60 @@ export default function QuranPage() {
       setAudioPlaying(false);
       return;
     }
-    const audio = new Audio(`${AUDIO_BASE}/${globalNumber}.mp3`);
+
+    const audio = new Audio(
+      `https://cdn.islamic.network/quran/audio/128/${reciter}/${globalNumber}.mp3`,
+    );
     audioRef.current = audio;
-    audio.play().catch(() => {});
-    setPlayingAyah(globalNumber);
-    setAudioPlaying(true);
+    audio
+      .play()
+      .then(() => {
+        setPlayingAyah(globalNumber);
+        setAudioPlaying(true);
+      })
+      .catch((e) => console.log(e));
+
     audio.onended = () => {
       setPlayingAyah(null);
       setAudioPlaying(false);
+      const currentRefState = stateRef.current;
+      if (currentRefState.isAutoPlay) {
+        const currentIndex = currentRefState.verses.findIndex(
+          (v) => v.globalNumber === globalNumber,
+        );
+        if (
+          currentIndex >= 0 &&
+          currentIndex < currentRefState.verses.length - 1
+        ) {
+          const nextAyah = currentRefState.verses[currentIndex + 1];
+          playAyah(nextAyah.globalNumber);
+          const nextEl = verseRefs.current[nextAyah.globalNumber];
+          if (nextEl)
+            nextEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else {
+          setIsAutoPlay(false);
+        }
+      }
     };
   }
 
-  useEffect(
-    () => () => {
-      audioRef.current?.pause();
-    },
-    [],
-  );
+  const adjustFontSize = (increment) => {
+    setFontSize((prev) => {
+      const newSize = Math.max(20, Math.min(50, prev + (increment ? 4 : -4)));
+      LS.set("tawfiq_quran_fontsize", newSize);
+      return newSize;
+    });
+  };
 
-  const surahInfo = selectedSurah ? SURAHS[selectedSurah - 1] : null;
+  useEffect(() => {
+    return () => audioRef.current?.pause();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border px-4 py-3.5">
-        <div className="max-w-md mx-auto flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-green-100 dark:border-green-900 px-6 py-5">
+        <div className="max-w-md mx-auto flex items-center justify-between gap-4">
           {view === "reader" ? (
             <>
               <button
@@ -350,31 +451,38 @@ export default function QuranPage() {
                   setView("list");
                   setVerses([]);
                   audioRef.current?.pause();
+                  setPlayingAyah(null);
+                  setIsAutoPlay(false);
                 }}
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-secondary text-muted-foreground"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-secondary text-muted-foreground transition-colors hover:bg-muted"
               >
                 <ArrowLeft size={17} />
               </button>
               <div className="text-center">
                 <p className="text-sm font-bold text-foreground">
-                  {surahInfo?.[1]}
+                  {selectedJuz
+                    ? `Juz ${selectedJuz}`
+                    : selectedSurah
+                      ? SURAHS[selectedSurah - 1][1]
+                      : ""}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {surahInfo?.[2]} · {surahInfo?.[3]} verses
+                  {selectedJuz
+                    ? `Complete Part`
+                    : selectedSurah
+                      ? `${SURAHS[selectedSurah - 1][2]}`
+                      : ""}
                 </p>
               </div>
-              <button
-                onClick={() => setShowWordByWord((w) => !w)}
-                className={`text-xs font-semibold px-2.5 py-1 rounded-full border transition-colors ${showWordByWord ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}
-              >
-                W×W
-              </button>
+              <div className="w-9 h-9"></div>
             </>
           ) : (
             <>
               <div>
-                <h1 className="text-lg font-bold text-foreground">Quran</h1>
-                <p className="text-xs text-muted-foreground">
+                <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+                  Quran
+                </h1>
+                <p className="text-sm text-muted-foreground mt-0.5">
                   Al-Quran Al-Kareem
                 </p>
               </div>
@@ -384,7 +492,28 @@ export default function QuranPage() {
                   setEdition(e.target.value);
                   LS.set("tawfiq_quran_edition", e.target.value);
                 }}
-                className="text-xs bg-secondary border border-border rounded-lg px-2 py-1.5 text-foreground focus:outline-none"
+                className="
+    h-11
+    min-w-[220px]
+    rounded-2xl
+    border
+    border-green-100
+    dark:border-green-900
+    bg-white
+    dark:bg-card
+    px-4
+    text-[15px]
+    font-medium
+    text-foreground
+    shadow-sm
+    hover:shadow-md
+    hover:border-green-300
+    focus:outline-none
+    focus:ring-2
+    focus:ring-green-500/20
+    transition-all
+    duration-300
+  "
               >
                 {EDITIONS.map((ed) => (
                   <option key={ed.id} value={ed.id}>
@@ -399,20 +528,41 @@ export default function QuranPage() {
 
       {view === "reader" ? (
         <ReaderView
-          surahNum={selectedSurah}
+          isJuzMode={!!selectedJuz}
           verses={verses}
           loading={loadingVerses}
           showWordByWord={showWordByWord}
-          isBookmarked={isBookmarked}
+          setShowWordByWord={setShowWordByWord}
+          showTransliteration={showTransliteration}
+          setShowTransliteration={(val) => {
+            setShowTransliteration(val);
+            LS.set("tawfiq_quran_transliteration", val);
+          }}
+          showTajweed={showTajweed}
+          setShowTajweed={(val) => {
+            setShowTajweed(val);
+            LS.set("tawfiq_quran_tajweed", val);
+          }}
+          readingMode={readingMode}
+          setReadingMode={(mode) => {
+            setReadingMode(mode);
+            LS.set("tawfiq_quran_reading_mode", mode);
+          }}
+          isBookmarked={(s, a) => bookmarks.some((b) => b.key === `${s}:${a}`)}
           onBookmark={toggleBookmark}
           playingAyah={playingAyah}
           onPlayAyah={playAyah}
+          isAutoPlay={isAutoPlay}
+          setIsAutoPlay={setIsAutoPlay}
+          audioRef={audioRef}
+          fontSize={fontSize}
+          adjustFontSize={adjustFontSize}
+          verseRefs={verseRefs}
         />
       ) : (
         <div>
-          {/* Tabs */}
-          <div className="sticky top-[61px] z-30 bg-background/95 backdrop-blur-md border-b border-border">
-            <div className="max-w-md mx-auto px-4 py-2.5">
+          <div className="sticky top-[73px] z-30 bg-background/95 backdrop-blur-md border-b border-border">
+            <div className="max-w-md mx-auto px-4 py-3 shadow-sm">
               <SectionSwitcher tabs={TABS} active={tab} onChange={setTab} />
             </div>
           </div>
@@ -420,84 +570,114 @@ export default function QuranPage() {
           <div className="max-w-md mx-auto px-4 pt-4 space-y-4">
             {tab === "read" && (
               <>
-                {/* Continue reading */}
                 {lastRead && (
                   <button
                     onClick={() => openSurah(lastRead.surah)}
-                    className="w-full flex items-center gap-3 bg-primary/10 border border-primary/25 rounded-2xl p-4 text-left hover:bg-primary/15 transition-colors active:scale-[0.99]"
+                    className="w-full flex items-center gap-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-3xl p-5 shadow-lg text-left hover:bg-primary/90 transition-all active:scale-[0.99]"
                   >
-                    <Clock size={18} className="text-primary flex-shrink-0" />
+                    <Clock size={18} className="text-green-200 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-primary uppercase tracking-wider">
+                      <p className="text-xs font-bold uppercase tracking-[0.25em] text-green-100">
                         Continue Reading
                       </p>
-                      <p className="text-sm font-bold text-foreground">
+                      <p className="text-lg font-bold text-white">
                         {lastRead.name}
                       </p>
                     </div>
                     <ChevronRight
                       size={16}
-                      className="text-muted-foreground flex-shrink-0"
+                      className="text-white flex-shrink-0"
                     />
                   </button>
                 )}
 
-                {/* Search */}
-                <div className="relative">
-                  <Search
-                    size={14}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  />
-                  <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search surah by name or number…"
-                    className="w-full bg-secondary border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                  {search && (
+                <div className="space-y-3">
+                  <div className="flex bg-secondary p-1 rounded-xl">
                     <button
-                      onClick={() => setSearch("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      onClick={() => setBrowseMode("surah")}
+                      className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-colors ${browseMode === "surah" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
                     >
-                      <X size={13} />
+                      Surah
                     </button>
+                    <button
+                      onClick={() => setBrowseMode("juz")}
+                      className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-colors ${browseMode === "juz" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      Juz
+                    </button>
+                  </div>
+
+                  {browseMode === "surah" && (
+                    <div className="relative">
+                      <Search
+                        size={18}
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      />
+                      <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search surah…"
+                        className="w-full bg-secondary border border-border rounded-xl pl-9 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    </div>
                   )}
                 </div>
 
-                {/* Surah list */}
-                <div className="space-y-1.5">
-                  {filteredSurahs.map(([num, ar, en, ayahs, rev]) => (
-                    <button
-                      key={num}
-                      onClick={() => openSurah(num)}
-                      className="w-full flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3 hover:bg-secondary transition-colors active:scale-[0.99] text-left"
-                    >
-                      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-bold text-primary tabular-nums">
-                          {num}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground">
-                          {ar}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {en} · {ayahs} verses · {rev}
-                        </p>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-xs text-muted-foreground">
-                          Juz {juzOfAyah(num, 1)}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
+                <div className="space-y-3">
+                  {browseMode === "surah"
+                    ? filteredSurahs.map(([num, ar, en, ayahs, rev]) => (
+                        <button
+                          key={num}
+                          onClick={() => openSurah(num)}
+                          className="w-full flex items-center gap-4 bg-card border border-border rounded-3xl px-5 py-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 active:scale-[0.98] text-left"
+                        >
+                          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-bold text-primary tabular-nums">
+                              {num}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-foreground">
+                              {ar}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {en} · {ayahs} verses · {rev}
+                            </p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-xs text-muted-foreground">
+                              Juz {juzOfAyah(num, 1)}
+                            </p>
+                          </div>
+                        </button>
+                      ))
+                    : Array.from({ length: 30 }, (_, i) => i + 1).map((num) => (
+                        <button
+                          key={num}
+                          onClick={() => openJuz(num)}
+                          className="w-full flex items-center gap-4 bg-card border border-border rounded-3xl px-5 py-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 active:scale-[0.98] text-left"
+                        >
+                          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-bold text-primary tabular-nums">
+                              {num}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-foreground">
+                              Juz {num}
+                            </p>
+                          </div>
+                          <ChevronRight
+                            size={16}
+                            className="text-muted-foreground"
+                          />
+                        </button>
+                      ))}
                 </div>
               </>
             )}
 
             {tab === "hadith" && <HadithTab />}
-
             {tab === "bookmarks" && (
               <BookmarksTab
                 bookmarks={bookmarks}
@@ -505,7 +685,6 @@ export default function QuranPage() {
                 onRemove={(s, a) => toggleBookmark(s, a)}
               />
             )}
-
             {tab === "insights" && (
               <InsightsTab
                 dailyGoal={dailyGoal}
@@ -524,17 +703,81 @@ export default function QuranPage() {
   );
 }
 
+// ─── Tajweed Rendering Engine ──────────────────────────────────────────────────
+function applyTajweed(text) {
+  let res = text;
+  // Ghunnah (Green): Noon or Meem followed by Shaddah
+  res = res.replace(
+    /([نم])(ّ[َُِ]?)/g,
+    '<span class="text-green-500 font-bold">$1$2</span>',
+  );
+  // Qalqalah (Blue): Qaf, Ta, Ba, Jeem, Dal followed by Sukoon
+  res = res.replace(
+    /([قطبجد])(ْ)/g,
+    '<span class="text-blue-500 font-bold">$1$2</span>',
+  );
+  // Madd (Red): Alif, Waw, Ya with Maddah
+  res = res.replace(
+    /([آئؤاوي])(ٓ)/g,
+    '<span class="text-red-500 font-bold">$1$2</span>',
+  );
+  return res;
+}
+
+const TajweedText = ({ text, active }) => {
+  if (!active) return <>{text}</>;
+  return <span dangerouslySetInnerHTML={{ __html: applyTajweed(text) }} />;
+};
+
 // ─── Reader View ─────────────────────────────────────────────────────────────
 function ReaderView({
-  surahNum,
+  isJuzMode,
   verses,
   loading,
   showWordByWord,
+  setShowWordByWord,
+  showTransliteration,
+  setShowTransliteration,
+  showTajweed,
+  setShowTajweed,
+  readingMode,
+  setReadingMode,
   isBookmarked,
   onBookmark,
   playingAyah,
   onPlayAyah,
+  isAutoPlay,
+  setIsAutoPlay,
+  audioRef,
+  fontSize,
+  adjustFontSize,
+  verseRefs,
 }) {
+  const [toast, setToast] = useState(false);
+  const [jumpTo, setJumpTo] = useState("");
+
+  const handleCopy = (verse) => {
+    const textToCopy = `${verse.arabic}\n\n${verse.translation}\n- Surah ${verse.surahName}, Ayah ${verse.number}`;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      setToast(true);
+      setTimeout(() => setToast(false), 2000);
+    });
+  };
+
+  const handleJump = (e) => {
+    if (e.key === "Enter" || e.type === "click") {
+      const num = parseInt(jumpTo);
+      const target = verses.find((v) => v.number === num);
+      if (target && verseRefs.current[target.globalNumber]) {
+        verseRefs.current[target.globalNumber].scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+      setJumpTo("");
+    }
+  };
+
   if (loading)
     return (
       <div className="max-w-md mx-auto px-4 pt-6 space-y-4">
@@ -547,84 +790,287 @@ function ReaderView({
     );
 
   return (
-    <div className="max-w-md mx-auto px-4 pt-4 pb-4 space-y-3">
-      {/* Bismillah */}
-      {surahNum !== 1 && surahNum !== 9 && (
-        <div className="text-center py-3">
-          <p
-            className="text-2xl font-bold text-foreground"
-            style={{ fontFamily: "serif", direction: "rtl" }}
-          >
-            بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            In the name of Allah, the Most Gracious, the Most Merciful
-          </p>
+    <div className="max-w-md mx-auto px-4 pt-4 pb-24 space-y-3 relative">
+      <div
+        className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ${toast ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"}`}
+      >
+        <div className="bg-primary text-primary-foreground px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-sm font-semibold">
+          <CheckCircle2 size={16} /> Ayah Copied
         </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-2xl p-3 shadow-sm mb-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex bg-secondary p-1 rounded-xl">
+            <button
+              onClick={() => setReadingMode("translation")}
+              className={`p-1.5 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${readingMode === "translation" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+            >
+              <AlignRight size={14} /> Translation
+            </button>
+            <button
+              onClick={() => setReadingMode("mushaf")}
+              className={`p-1.5 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${readingMode === "mushaf" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+            >
+              <BookText size={14} /> Mushaf
+            </button>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => adjustFontSize(false)}
+              className="p-1.5 rounded-lg bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Minus size={16} />
+            </button>
+            <button
+              onClick={() => adjustFontSize(true)}
+              className="p-1.5 rounded-lg bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-3 border-t border-border gap-2">
+          <div className="flex bg-secondary p-1 rounded-xl overflow-x-auto hide-scrollbar">
+            {readingMode === "translation" && (
+              <>
+                <button
+                  onClick={() => setShowTransliteration(!showTransliteration)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${showTransliteration ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  <Type size={12} /> Transliteration
+                </button>
+                <button
+                  onClick={() => setShowWordByWord(!showWordByWord)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${showWordByWord ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  Word Transliteration
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => setShowTajweed(!showTajweed)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${showTajweed ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <Palette size={12} /> Tajweed
+            </button>
+          </div>
+          <div className="relative w-20 flex-shrink-0">
+            <Hash
+              size={12}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              value={jumpTo}
+              onChange={(e) => setJumpTo(e.target.value)}
+              onKeyDown={handleJump}
+              placeholder="Ayah"
+              className="w-full bg-secondary rounded-lg pl-7 pr-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+        </div>
+      </div>
+
+      {readingMode === "mushaf" ? (
+        <div
+          className="bg-card border border-border p-6 rounded-3xl shadow-sm leading-[3.5] text-right"
+          style={{
+            fontFamily: "serif",
+            direction: "rtl",
+            fontSize: `${fontSize + 6}px`,
+          }}
+        >
+          {verses.map((v, i) => {
+            const isBismillah =
+              v.number === 1 && v.surahNumber !== 1 && v.surahNumber !== 9;
+            const bismillahText = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
+            let displayArabic = v.arabic;
+            if (isBismillah && displayArabic.startsWith(bismillahText))
+              displayArabic = displayArabic.replace(bismillahText, "").trim();
+
+            return (
+              <React.Fragment key={v.globalNumber}>
+                {isBismillah && (
+                  <div className="text-center w-full block py-6 text-primary">
+                    {bismillahText}
+                  </div>
+                )}
+                <span
+                  ref={(el) => (verseRefs.current[v.globalNumber] = el)}
+                  onClick={() => onPlayAyah(v.globalNumber)}
+                  className={`inline transition-colors cursor-pointer ${playingAyah === v.globalNumber ? "text-primary bg-primary/10 rounded-lg" : "text-foreground hover:text-primary/80"}`}
+                >
+                  <TajweedText text={displayArabic} active={showTajweed} />
+                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-primary/40 text-sm mx-2 text-primary tabular-nums align-middle relative top-[-4px]">
+                    {v.number}
+                  </span>
+                </span>
+              </React.Fragment>
+            );
+          })}
+        </div>
+      ) : (
+        verses.map((v) => {
+          const isBismillah =
+            v.number === 1 && v.surahNumber !== 1 && v.surahNumber !== 9;
+          const bismillahText = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
+          let displayArabic = v.arabic;
+          if (isBismillah && displayArabic.startsWith(bismillahText))
+            displayArabic = displayArabic.replace(bismillahText, "").trim();
+
+          return (
+            <React.Fragment key={v.globalNumber}>
+              {isBismillah && (
+                <div className="text-center py-5">
+                  <p
+                    className="font-bold text-foreground"
+                    style={{
+                      fontFamily: "serif",
+                      direction: "rtl",
+                      fontSize: `${fontSize}px`,
+                    }}
+                  >
+                    {bismillahText}
+                  </p>
+                </div>
+              )}
+              <div
+                ref={(el) => (verseRefs.current[v.globalNumber] = el)}
+                className={`bg-card border ${playingAyah === v.globalNumber ? "border-primary ring-1 ring-primary/20" : "border-border"} rounded-3xl p-5 shadow-sm hover:shadow-md transition-all`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-full bg-primary/10 text-primary shadow-sm flex items-center justify-center">
+                      <span className="text-[10px] font-bold tabular-nums">
+                        {v.number}
+                      </span>
+                    </div>
+                    {isJuzMode && v.number === 1 && (
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        {v.surahName}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleCopy(v)}
+                      className="w-9 h-9 flex items-center justify-center rounded-full bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Copy size={11} />
+                    </button>
+                    <button
+                      onClick={() => onPlayAyah(v.globalNumber)}
+                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${playingAyah === v.globalNumber ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {playingAyah === v.globalNumber ? (
+                        <Pause size={11} />
+                      ) : (
+                        <Play size={11} />
+                      )}
+                    </button>
+                    <button
+                      onClick={() =>
+                        onBookmark(
+                          v.surahNumber,
+                          v.number,
+                          displayArabic,
+                          v.surahName,
+                        )
+                      }
+                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${isBookmarked(v.surahNumber, v.number) ? "text-amber-500 bg-amber-500/10" : "text-muted-foreground hover:text-foreground bg-secondary"}`}
+                    >
+                      <Bookmark
+                        size={11}
+                        fill={
+                          isBookmarked(v.surahNumber, v.number)
+                            ? "currentColor"
+                            : "none"
+                        }
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                {showWordByWord ? (
+                  <WordByWordDisplay
+                    arabic={displayArabic}
+                    translation={v.translation}
+                    fontSize={fontSize}
+                    showTajweed={showTajweed}
+                  />
+                ) : (
+                  <p
+                    className="leading-loose text-foreground text-right mb-3 transition-all duration-200"
+                    style={{
+                      fontFamily: "serif",
+                      direction: "rtl",
+                      lineHeight: 2.2,
+                      fontSize: `${fontSize}px`,
+                    }}
+                  >
+                    <TajweedText text={displayArabic} active={showTajweed} />
+                  </p>
+                )}
+
+                {showTransliteration && (
+                  <p className="text-sm text-primary italic leading-relaxed border-t border-border pt-3 mt-3">
+                    {v.transliteration}
+                  </p>
+                )}
+                <p className="text-sm text-muted-foreground leading-relaxed border-t border-border pt-3 mt-3">
+                  {v.translation}
+                </p>
+              </div>
+            </React.Fragment>
+          );
+        })
       )}
 
-      {verses.map((v) => (
-        <div
-          key={v.number}
-          className="bg-card border border-border rounded-2xl p-4"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-[10px] font-bold text-primary tabular-nums">
-                {v.number}
+      {/* Floating Audio Player */}
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-md pointer-events-none">
+        <div className="bg-card/95 backdrop-blur-xl border border-border rounded-full shadow-2xl p-2.5 flex items-center justify-between px-5 pointer-events-auto transition-transform">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsAutoPlay(!isAutoPlay)}
+              className={`p-2.5 rounded-full transition-colors flex items-center justify-center ${isAutoPlay ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+            >
+              <Repeat size={16} />
+            </button>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-foreground">
+                {isAutoPlay ? "Auto-scroll ON" : "Continuous Play"}
+              </span>
+              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                {playingAyah ? "Audio Playing" : "Ready to Read"}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onPlayAyah(v.globalNumber)}
-                className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${playingAyah === v.globalNumber ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
-              >
-                {playingAyah === v.globalNumber ? (
-                  <Pause size={11} />
-                ) : (
-                  <Play size={11} />
-                )}
-              </button>
-              <button
-                onClick={() => onBookmark(surahNum, v.number)}
-                className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${isBookmarked(surahNum, v.number) ? "text-amber-500" : "text-muted-foreground hover:text-foreground bg-secondary"}`}
-              >
-                <Bookmark
-                  size={11}
-                  fill={
-                    isBookmarked(surahNum, v.number) ? "currentColor" : "none"
-                  }
-                />
-              </button>
-            </div>
           </div>
-
-          {showWordByWord ? (
-            <WordByWordDisplay arabic={v.arabic} translation={v.translation} />
-          ) : (
-            <>
-              <p
-                className="text-xl leading-loose text-foreground text-right mb-3"
-                style={{
-                  fontFamily: "serif",
-                  direction: "rtl",
-                  lineHeight: 2.2,
+          <div className="flex items-center gap-2">
+            {playingAyah ? (
+              <button
+                onClick={() => {
+                  audioRef.current?.pause();
+                  setPlayingAyah(null);
                 }}
+                className="p-3 bg-secondary text-foreground hover:bg-muted rounded-full transition-colors"
               >
-                {v.arabic}
-              </p>
-              <p className="text-sm text-muted-foreground leading-relaxed border-t border-border pt-3">
-                {v.translation}
-              </p>
-            </>
-          )}
+                <Pause size={16} />
+              </button>
+            ) : (
+              <div className="p-3 bg-secondary/50 text-muted-foreground/50 rounded-full">
+                <Volume2 size={16} />
+              </div>
+            )}
+          </div>
         </div>
-      ))}
+      </div>
     </div>
   );
 }
 
-function WordByWordDisplay({ arabic, translation }) {
+function WordByWordDisplay({ arabic, translation, fontSize, showTajweed }) {
   const words = arabic.split(" ");
   const trWords = translation.split(" ");
   return (
@@ -635,10 +1081,14 @@ function WordByWordDisplay({ arabic, translation }) {
           className="flex flex-col items-center gap-1 bg-secondary rounded-xl px-2 py-2 min-w-[48px]"
         >
           <span
-            className="text-base text-foreground"
-            style={{ fontFamily: "serif", direction: "rtl" }}
+            className="text-foreground transition-all duration-200"
+            style={{
+              fontFamily: "serif",
+              direction: "rtl",
+              fontSize: `${fontSize - 10}px`,
+            }}
           >
-            {w}
+            <TajweedText text={w} active={showTajweed} />
           </span>
           <span className="text-[10px] text-muted-foreground text-center leading-tight">
             {trWords[i] || ""}
@@ -657,9 +1107,6 @@ function BookmarksTab({ bookmarks, onOpen, onRemove }) {
         <Bookmark size={32} className="text-muted-foreground mx-auto mb-3" />
         <p className="text-sm font-semibold text-foreground">
           No bookmarks yet
-        </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Tap the bookmark icon on any verse while reading.
         </p>
       </div>
     );
@@ -706,7 +1153,6 @@ function InsightsTab({ dailyGoal, onGoalChange }) {
   const pagesLog = LS.get(KEY_PAGES, {});
   const today = new Date().toISOString().slice(0, 10);
   const todayPages = pagesLog[today] || 0;
-
   const streak = useMemo(() => {
     let s = 0,
       d = new Date();
@@ -718,9 +1164,7 @@ function InsightsTab({ dailyGoal, onGoalChange }) {
     }
     return s;
   }, [pagesLog]);
-
   const totalPages = Object.values(pagesLog).reduce((a, b) => a + b, 0);
-  const goals = [1, 2, 5, 10];
 
   return (
     <div className="space-y-4">
@@ -740,7 +1184,6 @@ function InsightsTab({ dailyGoal, onGoalChange }) {
           <p className="text-xs text-muted-foreground mt-1">Total Pages Read</p>
         </div>
       </div>
-
       <div className="bg-card border border-border rounded-2xl p-4">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Today's Progress
@@ -758,15 +1201,13 @@ function InsightsTab({ dailyGoal, onGoalChange }) {
             {todayPages}/{dailyGoal}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground">pages read today</p>
       </div>
-
       <div className="bg-card border border-border rounded-2xl p-4">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Daily Goal
         </p>
         <div className="grid grid-cols-4 gap-2">
-          {goals.map((g) => (
+          {[1, 2, 5, 10].map((g) => (
             <button
               key={g}
               onClick={() => onGoalChange(g)}
@@ -776,370 +1217,43 @@ function InsightsTab({ dailyGoal, onGoalChange }) {
             </button>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground mt-2">pages per day</p>
       </div>
     </div>
   );
 }
 
 // ─── Hadith Tab ───────────────────────────────────────────────────────────────
-const HADITH_COLLECTIONS = [
-  { id: "bukhari", label: "Sahih al-Bukhari", count: 7563 },
-  { id: "muslim", label: "Sahih Muslim", count: 3032 },
-  { id: "nawawi40", label: "Forty Hadith Nawawi", count: 42 },
-  { id: "riyadh", label: "Riyadh as-Salihin", count: 1896 },
-];
-
-const HADITH_CATEGORIES = [
-  { label: "Prayer & Salah", query: "prayer salah" },
-  { label: "Fajr", query: "fajr dawn" },
-  { label: "Jama'ah", query: "congregation mosque" },
-  { label: "Consistency", query: "deeds regular consistent" },
-  { label: "Repentance", query: "repentance tawbah forgiveness" },
-  { label: "Patience", query: "patience sabr" },
-];
-
 function HadithTab() {
-  const [view, setHView] = useState("daily"); // daily | search | collection
-  const [hadith, setHadith] = useState(null);
-  const [loadingH, setLoadingH] = useState(false);
-  const [searchQ, setSearchQ] = useState("");
-  const [results, setResults] = useState([]);
-  const [bookmarks, setBookmarks] = useState(() =>
-    LS.get("tawfiq_hadith_bkmk", []),
-  );
-  const [activeCollection, setActiveCollection] = useState(null);
-  const [collectionHadith, setCollectionHadith] = useState([]);
-  const [savedNotes, setSavedNotes] = useState(() =>
-    LS.get("tawfiq_hadith_notes", {}),
-  );
+  const [view, setHView] = useState("daily");
+  const [hadith, setHadith] = useState({ text: { en: "Loading..." } });
 
   useEffect(() => {
-    if (view === "daily" && !hadith) loadDailyHadith();
-  }, [view]);
-
-  async function loadDailyHadith() {
-    setLoadingH(true);
-    // Use day of year to pick a consistent daily hadith
-    const dayOfYear = Math.floor(
-      (new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000,
-    );
-    const hadithNum = (dayOfYear % 100) + 1;
-    const res = await fetch(
-      `https://api.hadith.gader.io/books/bukhari/${hadithNum}`,
-    ).catch(() => null);
-    if (res?.ok) {
-      const data = await res.json();
-      setHadith(data);
-    } else {
-      // Fallback static hadith about prayer
-      setHadith({
-        hadithnumber: 525,
-        book: "Sahih al-Bukhari",
-        chapter: "Times of Prayer",
-        text: {
-          en: "The Prophet (ﷺ) said: 'The first matter that the slave will be brought to account for on the Day of Judgment is the prayer. If it is sound, then the rest of his deeds will be sound. And if it is bad, then the rest of his deeds will be bad.'",
-        },
-      });
-    }
-    setLoadingH(false);
-  }
-
-  async function searchHadith() {
-    if (!searchQ.trim()) return;
-    setLoadingH(true);
-    setResults([]);
-    const res = await fetch(
-      `https://api.sunnah.com/v1/hadiths/random?limit=5`,
-      {
-        headers: { "X-API-Key": "SqD712P3E82xnwOAEOkGd5JZH8s9wRR24TN8umMd" },
+    setHadith({
+      book: "Sahih al-Bukhari",
+      text: {
+        en: "The Prophet (ﷺ) said: 'The most beloved deeds to Allah are those done regularly, even if they are small.'",
       },
-    ).catch(() => null);
-    // Fallback: show curated relevant hadiths based on query
-    const curated = getCuratedHadiths(searchQ);
-    setResults(curated);
-    setLoadingH(false);
-  }
-
-  function getCuratedHadiths(query) {
-    const q = query.toLowerCase();
-    const all = [
-      {
-        id: 1,
-        text: "The Prophet (ﷺ) said: 'The most beloved deeds to Allah are those done regularly, even if they are small.'",
-        source: "Sahih al-Bukhari 6465",
-        topic: "consistency",
-      },
-      {
-        id: 2,
-        text: "The Prophet (ﷺ) said: 'Whoever misses the Asr prayer, it is as though he lost his family and wealth.'",
-        source: "Sahih al-Bukhari 552",
-        topic: "prayer asr",
-      },
-      {
-        id: 3,
-        text: "The Prophet (ﷺ) said: 'Give good news to those who walk to the mosque in the dark, for they will have perfect light on the Day of Resurrection.'",
-        source: "Sunan Ibn Majah 780",
-        topic: "fajr mosque darkness",
-      },
-      {
-        id: 4,
-        text: "The Prophet (ﷺ) said: 'The two rakat of Fajr are better than the world and everything in it.'",
-        source: "Sahih Muslim 725",
-        topic: "fajr prayer",
-      },
-      {
-        id: 5,
-        text: "The Prophet (ﷺ) said: 'Prayer in congregation is twenty-five times superior to prayer offered alone.'",
-        source: "Sahih al-Bukhari 645",
-        topic: "congregation jamaah",
-      },
-      {
-        id: 6,
-        text: "The Prophet (ﷺ) said: 'Be patient, for patience is a gift from Allah.'",
-        source: "Sahih al-Bukhari 7534",
-        topic: "patience sabr",
-      },
-      {
-        id: 7,
-        text: "The Prophet (ﷺ) said: 'Every son of Adam makes mistakes, and the best of those who make mistakes are those who repent.'",
-        source: "Sunan Ibn Majah 4251",
-        topic: "repentance tawbah forgiveness",
-      },
-      {
-        id: 8,
-        text: "The Prophet (ﷺ) said: 'The prayer is a light.'",
-        source: "Sahih Muslim 223",
-        topic: "prayer light",
-      },
-      {
-        id: 9,
-        text: "The Prophet (ﷺ) said: 'Whoever prays the two cool prayers (Fajr and Asr) will go to Paradise.'",
-        source: "Sahih al-Bukhari 574",
-        topic: "fajr asr paradise",
-      },
-      {
-        id: 10,
-        text: "The Prophet (ﷺ) said: 'The covenant between us and them is prayer, so if anyone abandons it he has become a disbeliever.'",
-        source: "Sunan an-Nasa'i 464",
-        topic: "prayer covenant",
-      },
-    ];
-    return all.filter(
-      (h) => h.topic.includes(q) || h.text.toLowerCase().includes(q),
-    );
-  }
-
-  function toggleHadithBookmark(h) {
-    const exists = bookmarks.find((b) => b.id === (h.id || h.hadithnumber));
-    const next = exists
-      ? bookmarks.filter((b) => b.id !== (h.id || h.hadithnumber))
-      : [
-          ...bookmarks,
-          {
-            id: h.id || h.hadithnumber,
-            text: h.text?.en || h.text,
-            source: h.source || h.book,
-          },
-        ];
-    setBookmarks(next);
-    LS.set("tawfiq_hadith_bkmk", next);
-  }
-
-  const htabs = [
-    { id: "daily", label: "Daily" },
-    { id: "search", label: "Search" },
-    { id: "saved", label: "Saved" },
-  ];
+    });
+  }, []);
 
   return (
     <div className="space-y-4">
-      <SectionSwitcher tabs={htabs} active={view} onChange={setHView} />
-
-      {view === "daily" &&
-        (loadingH ? (
-          <div className="h-48 rounded-2xl bg-muted animate-pulse" />
-        ) : (
-          hadith && (
-            <div className="space-y-3">
-              <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-semibold text-primary uppercase tracking-wider">
-                    Today's Hadith
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date().toLocaleDateString()}
-                  </p>
-                </div>
-                <p className="text-sm leading-relaxed text-foreground mb-4">
-                  {hadith.text?.en || hadith.text}
-                </p>
-                <div className="border-t border-border pt-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-foreground">
-                      {hadith.book || "Sahih al-Bukhari"}
-                    </p>
-                    {hadith.chapter && (
-                      <p className="text-xs text-muted-foreground">
-                        {hadith.chapter}
-                      </p>
-                    )}
-                    {hadith.hadithnumber && (
-                      <p className="text-xs text-muted-foreground">
-                        Hadith #{hadith.hadithnumber}
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => toggleHadithBookmark(hadith)}
-                    className="text-xs text-muted-foreground hover:text-amber-500 transition-colors"
-                  >
-                    <Bookmark size={15} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-card border border-border rounded-2xl p-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Quick Search by Topic
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {HADITH_CATEGORIES.map((cat) => (
-                    <button
-                      key={cat.label}
-                      onClick={() => {
-                        setSearchQ(cat.query);
-                        setHView("search");
-                        setTimeout(searchHadith, 100);
-                      }}
-                      className="text-xs font-medium bg-secondary border border-border rounded-full px-3 py-1.5 text-foreground hover:bg-muted transition-colors"
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )
-        ))}
-
-      {view === "search" && (
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search
-                size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              />
-              <input
-                value={searchQ}
-                onChange={(e) => setSearchQ(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && searchHadith()}
-                placeholder="Search hadith topics…"
-                className="w-full bg-secondary border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-            <button
-              onClick={searchHadith}
-              className="bg-primary text-primary-foreground text-sm font-semibold px-4 rounded-xl hover:opacity-90"
-            >
-              Go
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {HADITH_CATEGORIES.map((cat) => (
-              <button
-                key={cat.label}
-                onClick={() => {
-                  setSearchQ(cat.query);
-                  setTimeout(searchHadith, 0);
-                }}
-                className="text-xs font-medium bg-secondary border border-border rounded-full px-2.5 py-1 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-
-          {loadingH && (
-            <div className="h-24 rounded-2xl bg-muted animate-pulse" />
-          )}
-          {results.map((h) => (
-            <div
-              key={h.id}
-              className="bg-card border border-border rounded-2xl p-4"
-            >
-              <p className="text-sm leading-relaxed text-foreground mb-3">
-                {h.text}
-              </p>
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-primary">{h.source}</p>
-                <button
-                  onClick={() => toggleHadithBookmark(h)}
-                  className="text-muted-foreground hover:text-amber-500 transition-colors"
-                >
-                  <Bookmark
-                    size={13}
-                    fill={
-                      bookmarks.find((b) => b.id === h.id)
-                        ? "currentColor"
-                        : "none"
-                    }
-                    className={
-                      bookmarks.find((b) => b.id === h.id)
-                        ? "text-amber-500"
-                        : ""
-                    }
-                  />
-                </button>
-              </div>
-            </div>
-          ))}
-          {!loadingH && results.length === 0 && searchQ && (
-            <p className="text-center text-sm text-muted-foreground py-8">
-              No results. Try: prayer, fajr, patience, repentance…
-            </p>
-          )}
+      <SectionSwitcher
+        tabs={[{ id: "daily", label: "Daily" }]}
+        active={view}
+        onChange={setHView}
+      />
+      <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold text-primary uppercase tracking-wider">
+            Today's Hadith
+          </p>
         </div>
-      )}
-
-      {view === "saved" &&
-        (bookmarks.length === 0 ? (
-          <div className="text-center py-16">
-            <Bookmark
-              size={32}
-              className="text-muted-foreground mx-auto mb-3"
-            />
-            <p className="text-sm text-muted-foreground">
-              No saved hadith yet.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {bookmarks.map((b) => (
-              <div
-                key={b.id}
-                className="bg-card border border-border rounded-2xl p-4"
-              >
-                <p className="text-sm leading-relaxed text-foreground mb-2">
-                  {b.text}
-                </p>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold text-primary">
-                    {b.source}
-                  </p>
-                  <button
-                    onClick={() => toggleHadithBookmark(b)}
-                    className="text-xs text-muted-foreground hover:text-destructive"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ))}
+        <p className="text-sm leading-relaxed text-foreground mb-4">
+          {hadith.text.en}
+        </p>
+        <p className="text-xs font-semibold text-foreground">{hadith.book}</p>
+      </div>
     </div>
   );
 }

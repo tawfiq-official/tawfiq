@@ -78,17 +78,20 @@ export default function Progress() {
 
   return (
     <div className="min-h-screen bg-background pb-28">
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border px-4 py-3.5">
+      {/* Header - Upgraded typography & sticky classes removed */}
+      <header className="bg-background border-b border-border px-6 py-5">
         <div className="max-w-md mx-auto">
-          <h1 className="text-lg font-bold text-foreground">Progress</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Your consistency, honestly
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+            Progress
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Track your Salah journey and build lasting consistency
           </p>
         </div>
       </header>
 
-      {/* Section switcher */}
-      <div className="sticky top-[61px] z-30 bg-background/95 backdrop-blur-md border-b border-border">
+      {/* Section switcher - Sticky to top-0 so it catches when the header scrolls away */}
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border shadow-sm">
         <div className="max-w-md mx-auto px-4 py-2.5">
           <SectionSwitcher
             tabs={TABS}
@@ -98,13 +101,13 @@ export default function Progress() {
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-4 pt-4 space-y-4">
+      <div className="max-w-md mx-auto px-4 pt-4 space-y-6">
         {/* OVERVIEW TAB */}
         {activeTab === "Overview" && (
           <>
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-950/40 flex items-center justify-center flex-shrink-0">
+              <div className="bg-white dark:bg-card border border-green-100 dark:border-green-900 rounded-3xl p-5 flex items-center gap-4 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                <div className="w-14 h-14 rounded-2xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shadow-sm dark:bg-orange-950/40 flex-shrink-0">
                   <Flame size={20} className="text-orange-500" />
                 </div>
                 <div>
@@ -116,12 +119,12 @@ export default function Progress() {
                   </p>
                 </div>
               </div>
-              <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-950/40 flex items-center justify-center flex-shrink-0">
+              <div className="bg-card border border-border rounded-2xl p-4 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex items-center gap-3">
+                <div className="w-14 h-14 rounded-2xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center shadow-sm dark:bg-yellow-950/40 flex-shrink-0">
                   <Trophy size={20} className="text-yellow-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold tabular-nums text-foreground">
+                  <p className="text-4xl font-black tabular-nums text-foreground leading-none">
                     {loading ? "—" : bestStreak}
                   </p>
                   <p className="text-xs text-muted-foreground">Best Streak</p>
@@ -129,9 +132,9 @@ export default function Progress() {
               </div>
             </div>
 
-            <div className="bg-card border border-border rounded-2xl p-4">
+            <div className="bg-white dark:bg-card border border-green-100 dark:border-green-900 rounded-3xl p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-green-700 dark:text-green-400">
                   Heatmap
                 </p>
                 <div className="flex gap-1">
@@ -141,8 +144,8 @@ export default function Progress() {
                       onClick={() => setHeatmapDays(opt.days)}
                       className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                         heatmapDays === opt.days
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-muted-foreground hover:bg-muted"
+                          ? "bg-green-700 text-white shadow-md"
+                          : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 hover:bg-green-100 transition-all duration-300"
                       }`}
                     >
                       {opt.label}
@@ -157,7 +160,7 @@ export default function Progress() {
               )}
             </div>
 
-            <div className="bg-card border border-border rounded-2xl p-4">
+            <div className="bg-white dark:bg-card border border-green-100 dark:border-green-900 rounded-3xl p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
                 Last 7 Days
               </p>
@@ -172,7 +175,7 @@ export default function Progress() {
                       style={{ height: "64px" }}
                     >
                       <div
-                        className="w-full rounded-t-md transition-all duration-300"
+                        className="w-full rounded-full transition-all duration-300"
                         style={{
                           height: `${(score / 5) * 64}px`,
                           minHeight: score > 0 ? "4px" : "0",
@@ -193,7 +196,7 @@ export default function Progress() {
               </div>
             </div>
 
-            <div className="bg-card border border-border rounded-2xl p-4">
+            <div className="bg-white dark:bg-card border border-green-100 dark:border-green-900 rounded-3xl p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
                 On-Time Rate
               </p>
@@ -218,9 +221,9 @@ export default function Progress() {
                           {pct}%
                         </span>
                       </div>
-                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                      <div className="h-3 bg-green-100 dark:bg-green-900/30 rounded-full overflow-hidden">
                         <div
-                          className="h-full rounded-full transition-all duration-500"
+                          className="h-full rounded-full transition-all duration-700"
                           style={{
                             width: `${pct}%`,
                             backgroundColor:

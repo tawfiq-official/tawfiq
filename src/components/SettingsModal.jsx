@@ -1,5 +1,16 @@
 import React, { useState } from "react";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -15,7 +26,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Moon, Pause, Download, Plane, Bell, Volume2 } from "lucide-react";
+import {
+  Moon,
+  Pause,
+  Download,
+  Plane,
+  Bell,
+  Volume2,
+  LogOut,
+} from "lucide-react";
+
+import { useNavigate } from "react-router-dom";
 import { CALCULATION_METHODS } from "@/lib/prayerUtils";
 import { fetchAllLogs } from "@/lib/useDailyLog";
 import { exportToCSV } from "@/lib/exportUtils";
@@ -39,6 +60,12 @@ const ADHAN_URLS = {
 };
 
 export default function SettingsModal({ open, onClose, settings, onUpdate }) {
+  const navigate = useNavigate();
+
+function handleLogout() {
+  onClose();
+  navigate("/login", { replace: true });
+}
   const [testingAdhan, setTestingAdhan] = useState(false);
 
   async function handleExport() {
@@ -68,35 +95,49 @@ export default function SettingsModal({ open, onClose, settings, onUpdate }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm mx-4 rounded-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[360px] w-[92%] rounded-3xl max-h-[88vh] overflow-y-auto p-6">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold">Settings</DialogTitle>
+          <DialogTitle className="text-3xl font-extrabold text-center">
+            Settings
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5 pt-1">
+        <div className="space-y-4 pt-2">
           {/* Dark Mode */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between rounded-2xl bg-green-50 dark:bg-green-950/20 border border-green-100 dark:border-green-900 px-4 py-4 transition-all hover:shadow-md">
             <div className="flex items-center gap-3">
-              <Moon size={17} className="text-primary" />
+              <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+                <Moon
+                  size={18}
+                  className="text-green-700 dark:text-green-400"
+                />
+              </div>
               <Label className="text-sm font-medium cursor-pointer">
                 Dark Mode
               </Label>
             </div>
-            <Switch
-              checked={!!settings.dark_mode}
-              onCheckedChange={(v) => onUpdate({ dark_mode: v })}
-            />
+            <div className="ml-4">
+              <Switch
+                checked={!!settings.dark_mode}
+                onCheckedChange={(v) => onUpdate({ dark_mode: v })}
+              />
+            </div>
           </div>
 
           {/* Exempt Mode */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between rounded-2xl px-4 py-3 bg-green-50/40 dark:bg-green-900/10">
             <div className="flex items-center gap-3">
-              <Pause size={17} className="text-primary" />
+              <div className="w-9 h-9 rounded-xl bg-green-100 dark:bg-green-900/40 flex items-center justify-center flex-shrink-0">
+                <Pause
+                  size={18}
+                  className="text-green-700 dark:text-green-400"
+                />
+              </div>
               <div>
                 <Label className="text-sm font-medium cursor-pointer">
                   Exempt Mode
                 </Label>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-[13px] text-muted-foreground leading-5">
                   Pauses streak & Qaza tracking
                 </p>
               </div>
@@ -110,7 +151,12 @@ export default function SettingsModal({ open, onClose, settings, onUpdate }) {
           {/* Travel Mode */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Plane size={17} className="text-primary" />
+              <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+                <Plane
+                  size={18}
+                  className="text-green-700 dark:text-green-400"
+                />
+              </div>
               <div>
                 <Label className="text-sm font-medium cursor-pointer">
                   Travel Mode
@@ -126,13 +172,18 @@ export default function SettingsModal({ open, onClose, settings, onUpdate }) {
             />
           </div>
 
-          <div className="border-t border-border" />
+          <div className="h-px bg-gradient-to-r from-transparent via-green-200 to-transparent" />
 
           {/* Prayer Notifications */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Bell size={17} className="text-primary" />
+                <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+                  <Bell
+                    size={18}
+                    className="text-green-700 dark:text-green-400"
+                  />
+                </div>
                 <div>
                   <Label className="text-sm font-medium cursor-pointer">
                     Prayer Reminders
@@ -176,8 +227,13 @@ export default function SettingsModal({ open, onClose, settings, onUpdate }) {
           {/* Adhan Voice */}
           <div className="space-y-2">
             <div className="flex items-center gap-3 mb-1">
-              <Volume2 size={17} className="text-primary" />
-              <Label className="text-sm font-medium">Adhan Voice</Label>
+              <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+                <Volume2
+                  size={18}
+                  className="text-green-700 dark:text-green-400"
+                />
+              </div>
+              <Label className="text-[15px] font-semibold">Adhan Voice</Label>
             </div>
             <Select
               value={settings.adhan_voice || "none"}
@@ -186,7 +242,7 @@ export default function SettingsModal({ open, onClose, settings, onUpdate }) {
                 previewAdhan(v);
               }}
             >
-              <SelectTrigger className="rounded-xl">
+              <SelectTrigger className="rounded-2xl h-12 border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -207,7 +263,7 @@ export default function SettingsModal({ open, onClose, settings, onUpdate }) {
               !testingAdhan && (
                 <button
                   onClick={() => previewAdhan(settings.adhan_voice)}
-                  className="text-xs text-muted-foreground underline underline-offset-2"
+                  className="text-sm text-green-700 dark:text-green-400 font-medium hover:underline"
                 >
                   Preview adhan
                 </button>
@@ -218,7 +274,9 @@ export default function SettingsModal({ open, onClose, settings, onUpdate }) {
 
           {/* Calculation Method */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Calculation Method</Label>
+            <Label className="text-base font-semibold">
+              Calculation Method
+            </Label>
             <Select
               value={String(settings.calculation_method ?? 2)}
               onValueChange={(v) => onUpdate({ calculation_method: Number(v) })}
@@ -237,18 +295,81 @@ export default function SettingsModal({ open, onClose, settings, onUpdate }) {
           </div>
 
           {/* Export */}
-          <div className="border-t border-border pt-4">
+          <div className="border-t border-border pt-5 text-center">
             <Button
               variant="outline"
-              className="w-full rounded-xl gap-2"
+              className="w-full rounded-2xl h-12 bg-green-600 hover:bg-green-700 text-white border-0 gap-2 shadow-md"
               onClick={handleExport}
             >
-              <Download size={15} />
+              <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                <Download size={16} />
+              </div>
               Export Prayer History (CSV)
             </Button>
-            <p className="text-xs text-muted-foreground text-center mt-2">
+            <p className="text-sm text-muted-foreground text-center mt-2">
               Your data, always yours.
             </p>
+          </div>
+          <div className="border-t border-border pt-5">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  className="
+          w-full
+          rounded-2xl
+          border
+          border-red-200
+          bg-red-50
+          hover:bg-red-100
+          transition-all
+          duration-300
+          px-5
+          py-4
+          flex
+          items-center
+          justify-between
+        "
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 rounded-xl bg-red-100 flex items-center justify-center">
+                      <LogOut size={20} className="text-red-600" />
+                    </div>
+
+                    <div className="text-left">
+                      <h3 className="font-semibold text-red-700">Logout</h3>
+
+                      <p className="text-xs text-muted-foreground">
+                        Return to onboarding
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </AlertDialogTrigger>
+
+              <AlertDialogContent className="rounded-3xl">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Logout?</AlertDialogTitle>
+
+                  <AlertDialogDescription>
+                    You will be returned to the onboarding screen. Your progress
+                    will remain saved unless you clear your local data.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="rounded-xl">
+                    Cancel
+                  </AlertDialogCancel>
+
+                  <AlertDialogAction
+                    onClick={handleLogout}
+                    className="rounded-xl bg-red-600 hover:bg-red-700"
+                  >
+                    Logout
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </DialogContent>

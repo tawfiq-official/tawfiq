@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, ChevronDown, ChevronUp, Navigation } from "lucide-react";
+import { ChevronDown, ChevronUp, Navigation } from "lucide-react";
 
 const KAABA_LAT = 21.4225;
 const KAABA_LON = 39.8262;
@@ -293,23 +293,19 @@ export default function QiblaCompass({ open, onClose, latitude, longitude }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm mx-2 rounded-3xl p-0 overflow-hidden border-0 shadow-2xl bg-background">
-        {/* Header */}
+      <DialogContent className="max-w-[360px] w-[92%] rounded-3xl max-h-[88vh]  p-6">
+        {/* Header - Removed custom extra 'X' button here */}
         <div className="flex items-center justify-between px-5 pt-5 pb-2">
           <div>
-            <h2 className="text-lg font-bold text-foreground">Qibla Finder</h2>
+            <h2 className="text-lg  font-bold text-foreground">
+              🕋 Qibla Finder
+            </h2>
             {distanceKm && (
               <p className="text-xs text-muted-foreground mt-0.5">
                 {distanceKm.toLocaleString()} km to Kaaba
               </p>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-secondary text-muted-foreground hover:text-foreground"
-          >
-            <X size={16} />
-          </button>
         </div>
 
         {/* ── No location ── */}
@@ -361,22 +357,63 @@ export default function QiblaCompass({ open, onClose, latitude, longitude }) {
 
         {/* ── Unavailable — Manual Fallback ── */}
         {latitude && sensorState === "unavailable" && (
-          <div className="px-5 pb-6 pt-2 space-y-3">
-            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 text-center">
-              <p className="text-2xl mb-1">🧭</p>
+          <div className="px-5 pb-6 pt-2 space-y-5">
+            <div
+              className="
+mx-auto
+w-full
+max-w-md
+flex
+flex-col
+items-center
+justify-center
+bg-gradient-to-br
+from-green-50
+to-white
+dark:from-green-950/30
+dark:to-background
+border
+border-green-200
+dark:border-green-800
+rounded-3xl
+p-6
+text-center
+shadow-sm
+hover:shadow-lg
+hover:-translate-y-1
+transition-all
+duration-300
+"
+            >
+              <div className="w-16 h-16 rounded-full bg-green-100 mx-auto flex items-center justify-center mb-4">
+                <span className="text-4xl">🧭</span>
+              </div>
               <p className="text-sm font-bold text-foreground">
-                Compass Not Available
+                Live Compass Unavailable
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Your device doesn't support a live compass. Use the direction
-                below.
+                We'll still guide you using your location. Simply face the
+                direction shown below.
               </p>
             </div>
-            <div className="bg-primary/10 border border-primary/25 rounded-2xl p-5 text-center">
+            <div
+              className="
+bg-gradient-to-br
+from-green-50
+to-green-100
+dark:from-green-950/20
+dark:to-green-900/20
+border
+border-green-200
+rounded-3xl
+p-6
+text-center
+ border border-primary/25 rounded-2xl p-5 text-center"
+            >
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                 Face This Direction
               </p>
-              <p className="text-3xl font-bold text-foreground">
+              <p className="text-5xl font-black font-bold text-foreground">
                 {qiblaDir !== null ? bearingToCardinal(qiblaDir) : "—"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
@@ -384,7 +421,7 @@ export default function QiblaCompass({ open, onClose, latitude, longitude }) {
               </p>
             </div>
             {distanceKm && (
-              <div className="bg-secondary rounded-2xl px-4 py-3 flex items-center justify-between">
+              <div className="mr-7 bg-secondary rounded-2xl px-4 py-3 flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">
                   Distance to Kaaba
                 </p>
@@ -394,10 +431,10 @@ export default function QiblaCompass({ open, onClose, latitude, longitude }) {
               </div>
             )}
             <button
-              onClick={startSensor}
-              className="w-full flex items-center justify-center gap-2 bg-secondary border border-border rounded-xl py-2.5 text-sm font-medium text-foreground"
-            >
-              <Navigation size={13} /> Retry Compass
+  onClick={startSensor}
+  className="mx-auto w-64 flex items-center justify-center gap-2 bg-secondary border border-border rounded-xl py-2.5 text-sm font-medium text-foreground"
+>
+              <Navigation size={13} /> Try Again
             </button>
           </div>
         )}
@@ -581,13 +618,21 @@ export default function QiblaCompass({ open, onClose, latitude, longitude }) {
 
             {/* Compass health row */}
             <div className="w-full grid grid-cols-3 gap-2">
-              <div className="bg-secondary rounded-xl px-2 py-2.5 text-center">
+              <div
+                className="bg-green-600
+text-white
+hover:bg-green-700 rounded-xl px-2 py-2.5 text-center"
+              >
                 <p className="text-[10px] text-muted-foreground mb-0.5">
                   Compass
                 </p>
                 <p className="text-xs font-bold text-green-600">✓ Active</p>
               </div>
-              <div className="bg-secondary rounded-xl px-2 py-2.5 text-center">
+              <div
+                className="bg-green-600
+text-white
+hover:bg-green-700 rounded-xl px-2 py-2.5 text-center"
+              >
                 <p className="text-[10px] text-muted-foreground mb-0.5">
                   Location
                 </p>
@@ -597,7 +642,11 @@ export default function QiblaCompass({ open, onClose, latitude, longitude }) {
                   {latitude ? "✓ Active" : "✗ Off"}
                 </p>
               </div>
-              <div className="bg-secondary rounded-xl px-2 py-2.5 text-center">
+              <div
+                className="bg-green-600
+text-white
+hover:bg-green-700 rounded-xl px-2 py-2.5 text-center"
+              >
                 <p className="text-[10px] text-muted-foreground mb-0.5">
                   Accuracy
                 </p>

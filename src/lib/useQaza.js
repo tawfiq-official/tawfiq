@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "./AuthContext";
 
 const DEFAULTS = {
   fajr_count: 0,
@@ -10,74 +11,117 @@ const DEFAULTS = {
 };
 
 export function useQaza() {
+  const { user } = useAuth();
+
   const [qaza, setQaza] = useState(DEFAULTS);
-  const [qazaId, setQazaId] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    load();
-  }, []);
+    if (user) {
+      load();
+    }
+  }, [user]);
 
   async function load() {
-    const list = await base44.entities.QazaLog.list();
-    if (list.length > 0) {
-      setQaza({ ...DEFAULTS, ...list[0] });
-      setQazaId(list[0].id);
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("qaza_logs")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    console.log("Qaza Data:", data);
+    console.log("Qaza Error:", error);
+
+    if (error) {
+      console.error(error);
+      setLoading(false);
+      return;
     }
+
+    if (data) {
+      setQaza({
+        ...DEFAULTS,
+        ...data,
+      });
+    } else {
+      // Create a new row if one doesn't exist
+      await supabase.from("qaza_logs").insert({
+        user_id: user.id,
+        ...DEFAULTS,
+      });
+
+      setQaza(DEFAULTS);
+    }
+
     setLoading(false);
   }
 
   const save = useCallback(
     async (next) => {
-      const clamped = Object.fromEntries(
-        Object.entries(next).map(([k, v]) => [
-          k,
-          typeof v === "number" ? Math.max(0, v) : v,
-        ]),
-      );
-      setQaza(clamped);
-      if (qazaId) await base44.entities.QazaLog.update(qazaId, clamped);
-      else {
-        const c = await base44.entities.QazaLog.create(clamped);
-        setQazaId(c.id);
+      setQaza(next);
+
+      const { error } = await supabase.from("qaza_logs").upsert({
+        user_id: user.id,
+        ...next,
+      });
+
+      if (error) {
+        console.error("Save Error:", error);
       }
     },
-    [qaza, qazaId],
+    [user],
   );
 
   const adjust = useCallback(
     async (prayer, delta) => {
-      await save({
+      const next = {
         ...qaza,
-        [`${prayer}_count`]: (qaza[`${prayer}_count`] || 0) + delta,
-      });
+        [`${prayer}_count`]: Math.max(
+          0,
+          (qaza[`${prayer}_count`] || 0) + delta,
+        ),
+      };
+
+      await save(next);
     },
     [qaza, save],
   );
 
-  const addFullDay = useCallback(async () => {
-    const u = {};
-    Object.keys(DEFAULTS).forEach((k) => (u[k] = (qaza[k] || 0) + 1));
-    await save({ ...qaza, ...u });
-  }, [qaza, save]);
-  const subtractFullDay = useCallback(async () => {
-    const u = {};
-    Object.keys(DEFAULTS).forEach(
-      (k) => (u[k] = Math.max(0, (qaza[k] || 0) - 1)),
-    );
-    await save({ ...qaza, ...u });
-  }, [qaza, save]);
+  const addFullDay = async () => {
+    const next = { ...qaza };
 
-  const setAmount = useCallback(
-    async (prayer, amount) => {
-      await save({ ...qaza, [`${prayer}_count`]: Math.max(0, amount) });
-    },
-    [qaza, save],
+    Object.keys(DEFAULTS).forEach((key) => {
+      next[key] += 1;
+    });
+
+    await save(next);
+  };
+
+  const subtractFullDay = async () => {
+    const next = { ...qaza };
+
+    Object.keys(DEFAULTS).forEach((key) => {
+      next[key] = Math.max(0, next[key] - 1);
+    });
+
+    await save(next);
+  };
+
+  const setAmount = async (prayer, amount) => {
+    const next = {
+      ...qaza,
+      [`${prayer}_count`]: Math.max(0, amount),
+    };
+
+    await save(next);
+  };
+
+  const total = Object.values(qaza).reduce(
+    (sum, value) => sum + (typeof value === "number" ? value : 0),
+    0,
   );
-
-  const total = Object.values(qaza)
-    .filter((v) => typeof v === "number")
-    .reduce((a, b) => a + b, 0);
 
   return {
     qaza,

@@ -5,15 +5,20 @@ import PrayerQualitySheet from "@/components/PrayerQualitySheet";
 import MissedReasonSheet from "@/components/MissedReasonSheet";
 
 const STATUS_STYLES = {
-  none: { card: "border-border bg-card" },
+  none: {
+    card: "border-border bg-card",
+  },
+
   on_time: {
-    card: "border-green-600/40 bg-green-50 dark:bg-green-950/30 dark:border-green-700/50",
+    card: "border-l-4 border-l-green-600 border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-700",
   },
+
   late: {
-    card: "border-amber-400/40 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/50",
+    card: "border-l-4 border-l-amber-500 border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700",
   },
+
   missed: {
-    card: "border-red-400/40 bg-red-50 dark:bg-red-950/30 dark:border-red-700/50",
+    card: "border-l-4 border-l-red-500 border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-700",
   },
 };
 
@@ -25,9 +30,11 @@ const DOT_COLOR = {
 };
 
 const BTN_ACTIVE = {
-  on_time: "bg-green-600 text-white shadow-sm",
-  late: "bg-amber-400 text-white shadow-sm",
-  missed: "bg-red-500 text-white shadow-sm",
+  on_time: "bg-green-600 text-white shadow-lg shadow-green-500/30",
+
+  late: "bg-amber-500 text-white shadow-lg shadow-amber-400/30",
+
+  missed: "bg-red-500 text-white shadow-lg shadow-red-500/30",
 };
 
 export default function PrayerCard({
@@ -89,29 +96,58 @@ export default function PrayerCard({
   return (
     <>
       <div
-        className={`rounded-2xl border-2 p-4 transition-all duration-150 ${stl.card} ${isExempt ? "opacity-50 pointer-events-none" : ""}`}
+        className={`
+    rounded-2xl
+    border-2
+    p-4
+    transition-all
+    duration-300
+    hover:shadow-xl
+    hover:border-green-300
+    hover:-translate-y-0.5
+    ${stl.card}
+    ${isExempt ? "opacity-50 pointer-events-none" : ""}
+  `}
       >
         {/* Top row */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div
-              className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${DOT_COLOR[status] || DOT_COLOR.none} transition-colors duration-150`}
+              className={`w-3.5 h-3.5 ring-2 ring-white dark:ring-gray-900 rounded-full flex-shrink-0 ${DOT_COLOR[status] || DOT_COLOR.none} transition-colors duration-150`}
             />
             <div>
-              <p className="font-semibold text-foreground text-[15px] leading-tight">
+              <p className="text-xl font-bold tracking-tight text-foreground">
                 {PRAYER_NAMES[prayer]}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
+              <p className="text-sm text-muted-foreground font-medium mt-1">
                 {prayerTime || "—"}
               </p>
+
+              {status === "on_time" && (
+                <p className="text-xs text-green-600 font-medium mt-1">
+                  ✓ Completed
+                </p>
+              )}
+
+              {status === "late" && (
+                <p className="text-xs text-amber-500 font-medium mt-1">
+                  ⏱ Completed Late
+                </p>
+              )}
+
+              {status === "missed" && (
+                <p className="text-xs text-red-500 font-medium mt-1">
+                  ✕ Missed
+                </p>
+              )}
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             {/* Lock badge */}
             {isLocked && (
-              <span className="text-[10px] font-semibold text-muted-foreground px-2 py-0.5 rounded-full bg-secondary border border-border flex items-center gap-1">
-                🔒 {lockedUntil}
+              <span className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-green-50 border border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-700 dark:text-green-300 text-xs font-semibold">
+                ⏳ Starts in {lockedUntil}
               </span>
             )}
 
@@ -132,7 +168,7 @@ export default function PrayerCard({
 
             {/* Missed reason indicator */}
             {!isLocked && status === "missed" && missedReason && (
-              <span className="text-[10px] text-red-500 font-medium px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-950/30 border border-red-200/60">
+              <span className="text-[10px] text-red-500 font-medium px-3 py-1 rounded-full bg-red-50 dark:bg-red-950/30 border border-red-200/60">
                 {missedReason}
               </span>
             )}
@@ -140,10 +176,10 @@ export default function PrayerCard({
             {!isLocked && status === "on_time" && (
               <button
                 onClick={() => onJamaahToggle(prayer)}
-                className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-full border transition-all duration-150 active:scale-95 ${
+                className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-full border transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 ${
                   jamaah
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border text-muted-foreground bg-transparent"
+                    ? "bg-green-600 text-primary-foreground border-green-600"
+                    : "border-border text-green-700 dark:text-green-300 bg-transparent"
                 }`}
               >
                 <Users size={10} />
@@ -180,10 +216,10 @@ export default function PrayerCard({
               <button
                 key={btn}
                 onClick={() => handleStatus(btn)}
-                className={`py-2.5 rounded-xl text-xs font-semibold transition-all duration-100 active:scale-95 ${
+                className={`py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95 ${
                   status === btn
                     ? BTN_ACTIVE[btn]
-                    : "bg-secondary text-muted-foreground hover:bg-muted"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900/40"
                 }`}
               >
                 {btn === "on_time"
@@ -200,7 +236,7 @@ export default function PrayerCard({
         {!isLocked && (status === "on_time" || status === "late") && (
           <button
             onClick={() => setQualityOpen(true)}
-            className="mt-2.5 w-full py-2 rounded-xl text-xs font-medium text-muted-foreground bg-secondary/70 hover:bg-muted border border-border/50 flex items-center justify-center gap-1.5 transition-all active:scale-[0.99]"
+            className="mt-2.5 w-full py-2 rounded-xl text-xs font-medium text-muted-foreground bg-green-50 dark:bg-green-900/20 hover:bg-muted border border-green-200 dark:border-green-700 flex items-center justify-center gap-1.5 transition-all active:scale-[0.99]"
           >
             <Star size={11} />
             {khushu > 0

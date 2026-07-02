@@ -73,9 +73,9 @@ function bearingToFullCardinal(deg) {
 function StaticCompassPreview({ qiblaDir }) {
   const needleAngle = qiblaDir ?? 0;
   return (
-    <div className="relative w-16 h-16 flex-shrink-0">
+    <div className="relative w-24 h-24 flex-shrink-0">
       {/* Ring */}
-      <div className="absolute inset-0 rounded-full border-2 border-border bg-secondary flex items-center justify-center">
+      <div className="absolute inset-0 rounded-full border-2 border-green-300 shadow-md dark:border-green-800 bg-gradient-to-br from-white to-green-50 dark:from-gray-900 dark:to-green-950 shadow-inner flex items-center justify-center">
         {/* Cardinal labels */}
         {[
           ["N", 0],
@@ -89,7 +89,7 @@ function StaticCompassPreview({ qiblaDir }) {
             style={{
               left: "50%",
               top: "50%",
-              transform: `rotate(${a}deg) translateY(-22px) rotate(-${a}deg) translateX(-50%)`,
+              transform: `rotate(${a}deg) translateY(-30px) rotate(-${a}deg) translateX(-50%)`,
               transformOrigin: "center",
             }}
           >
@@ -113,7 +113,7 @@ function StaticCompassPreview({ qiblaDir }) {
             height: 20,
             marginLeft: -10,
             marginTop: -10,
-            transform: `rotate(${needleAngle}deg) translateY(-22px) rotate(-${needleAngle}deg)`,
+            transform: `rotate(${needleAngle}deg) translateY(-30px) rotate(-${needleAngle}deg)`,
           }}
         >
           <span className="text-base leading-none">🕋</span>
@@ -134,57 +134,65 @@ const QiblaCard = memo(function QiblaCard({ latitude, longitude, onOpen }) {
   );
 
   if (!latitude) {
-    return (
-      <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-4">
-        <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-          <Navigation size={22} className="text-muted-foreground" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-foreground">Qibla Direction</p>
-          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-            <MapPin size={11} /> Location required
-          </p>
-          <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 font-medium">
-            ⚠ Enable location in Settings
-          </p>
-        </div>
-        <button
-          onClick={onOpen}
-          className="bg-primary text-primary-foreground text-xs font-bold px-3.5 py-2 rounded-xl hover:opacity-90 active:scale-95 transition-all flex-shrink-0"
-        >
-          Open
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-card border border-border rounded-2xl p-4">
-      <div className="flex items-center gap-4">
-        <StaticCompassPreview qiblaDir={qiblaDir} />
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-            Qibla Direction
-          </p>
-          <p className="text-sm font-bold text-foreground">
-            {bearingToFullCardinal(qiblaDir)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {Math.round(qiblaDir)}° · {distance?.toLocaleString()} km to Makkah
-          </p>
-          <p className="text-[10px] text-green-600 dark:text-green-400 mt-1 font-semibold flex items-center gap-1">
-            ✓ Qibla Ready
-          </p>
-        </div>
-        <button
-          onClick={onOpen}
-          className="flex items-center gap-1.5 bg-primary text-primary-foreground text-xs font-bold px-3.5 py-2 rounded-xl hover:opacity-90 active:scale-95 transition-all flex-shrink-0"
-        >
-          Open <ChevronRight size={12} />
-        </button>
+    <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-4">
+      <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+        <Navigation size={22} className="text-muted-foreground" />
       </div>
+
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-foreground">Qibla Direction</p>
+
+        <p className="text-xs t ext-muted-foreground mt-0.5 flex items-center gap-1">
+          <MapPin size={11} />
+          Location required
+        </p>
+
+        <p className="text-[10px] text-amber-600 mt-1 font-medium">
+          ⚠ Enable location in Settings
+        </p>
+      </div>
+
+      <button
+        onClick={onOpen}
+        className="bg-primary text-primary-foreground text-xs font-bold px-3.5 py-2 rounded-xl"
+      >
+        Open
+      </button>
     </div>
   );
+  }
+
+ return (
+   <div className="bg-white dark:bg-card border border-green-100 dark:border-green-900 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300">
+     <div className="flex items-center gap-4">
+       <StaticCompassPreview qiblaDir={qiblaDir} />
+       <div className="flex-1 min-w-0">
+        {/* <p className="text-[11px] uppercase tracking-[0.18em] text-green-700 font-bold">
+  QIBLA
+</p> */}
+
+<h3 className="text-2xl font-bold text-foreground mt-1">
+Qibla Finder
+</h3>
+
+<p className="text-sm text-muted-foreground mt-1">
+  Find the direction of the Kaaba
+</p>
+
+{/* <p className="text-sm text-green-600 font-medium mt-3">
+  📍 {distance?.toLocaleString()} km from Makkah
+</p> */}
+       </div>
+       <button
+         onClick={onOpen}
+         className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2.5 rounded-2xl font-semibold shadow-md transition-all hover:scale-105 active:scale-95"
+       >
+         Open <ChevronRight size={12} />
+       </button>
+     </div>
+   </div>
+ );
 });
 
 export default QiblaCard;

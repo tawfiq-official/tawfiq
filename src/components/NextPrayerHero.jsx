@@ -5,17 +5,17 @@ import { CALCULATION_METHODS } from "@/lib/prayerUtils";
 
 // Makkah images per prayer (free Unsplash URLs, always valid)
 // Replace this URL with your preferred simple Hajj image link
-const simpleHajjBg =
-  "https://images.unsplash.com/photo-1583057577582-748987391515?w=800&q=80";
-
-const BG = {
-  fajr: simpleHajjBg,
-  dhuhr: simpleHajjBg,
-  asr: simpleHajjBg,
-  maghrib: simpleHajjBg,
-  isha: simpleHajjBg,
-  default: simpleHajjBg,
-};
+// const simpleHajjBg =
+//   "https://images.unsplash.com/photo-1583057577582-748987391515?w=800&q=80";
+//going to delete this 
+// const BG = {
+//   fajr: simpleHajjBg,
+//   dhuhr: simpleHajjBg,
+//   asr: simpleHajjBg,
+//   maghrib: simpleHajjBg,
+//   isha: simpleHajjBg,
+//   default: simpleHajjBg,
+// };
 
 function parseTimeToDate(timeStr) {
   if (!timeStr) return null;
@@ -95,8 +95,8 @@ const NextPrayerHero = memo(function NextPrayerHero({
   const methodName =
     CALCULATION_METHODS.find((m) => m.id === calcMethod)?.name ||
     "Standard Method";
-  const bgUrl = BG[next?.name] || BG.default;
-
+const bgUrl =
+  "https://images.unsplash.com/photo-1512632578888-169bbbc64f33?w=1800&q=80&auto=format&fit=crop";
   useEffect(() => {
     if (!next?.time) return;
     function tick() {
@@ -113,7 +113,7 @@ const NextPrayerHero = memo(function NextPrayerHero({
 
   return (
     <div
-      className="relative overflow-hidden rounded-3xl shadow-xl"
+      className="relative overflow-hidden rounded-3xl shadow-2xl border border-white/10 ring-1 ring-white/10"
       style={{ minHeight: 220 }}
     >
       {/* Background image */}
@@ -122,11 +122,11 @@ const NextPrayerHero = memo(function NextPrayerHero({
         style={{
           backgroundImage: `url(${bgUrl})`,
           willChange: "transform",
-          animation: "heroZoom 20s ease-in-out infinite alternate",
+          animation: "heroZoom 35s ease-in-out infinite alternate",
         }}
       />
       {/* Overlays */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/30" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/35 to-black/10" />
       <div className="absolute inset-0 bg-primary/10" />
 
       {/* Content */}
@@ -135,7 +135,7 @@ const NextPrayerHero = memo(function NextPrayerHero({
         <div className="flex items-center justify-between">
           {st ? (
             <span
-              className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full text-white ${st.color}`}
+              className={`flex items-center gap-1.5 text-xs font-bold px-4 py-2 shadow-lg rounded-full text-white ${st.color}`}
             >
               <span
                 className={`w-1.5 h-1.5 rounded-full animate-pulse ${st.dot}`}
@@ -146,7 +146,7 @@ const NextPrayerHero = memo(function NextPrayerHero({
             <span className="text-xs text-white/60">Loading…</span>
           )}
           {rawTimings && (
-            <span className="text-[10px] text-white/60 text-right max-w-[140px] leading-tight">
+            <span className="text-[11px] text-green-100/90 text-right font-medium max-w-[130px] leading-tight">
               {methodName}
             </span>
           )}
@@ -154,14 +154,14 @@ const NextPrayerHero = memo(function NextPrayerHero({
 
         {/* Prayer name + time */}
         <div>
-          <p className="text-[11px] font-semibold text-white/60 uppercase tracking-widest mb-1">
+          <p className="text-xs font-bold text-green-200 uppercase tracking-[0.25em] mb-2">
             Next Prayer
           </p>
           <div className="flex items-baseline gap-3">
-            <p className="text-4xl font-black text-white leading-none">
+            <p className="text-5xl font-extrabold tracking-tight text-white leading-none">
               {next?.label || "—"}
             </p>
-            <p className="text-lg font-bold text-white/80">
+            <p className="text-xl font-semibold text-green-100">
               {next ? formatDisplayTime(next.raw) : ""}
             </p>
           </div>
@@ -177,12 +177,12 @@ const NextPrayerHero = memo(function NextPrayerHero({
             ].map(([key, label]) => (
               <div
                 key={key}
-                className="flex flex-col items-center bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2 min-w-[52px]"
+                className="flex flex-col items-center bg-white/20 border border-white/20 backdrop-blur-md rounded-2xl px-4 py-3 min-w-[62px] shadow-lg"
               >
-                <span className="text-2xl font-black text-white tabular-nums leading-none">
+                <span className="text-3xl font-black text-white tabular-nums leading-none">
                   {countdown[key]}
                 </span>
-                <span className="text-[9px] text-white/60 mt-0.5 uppercase tracking-wider">
+                <span className="text-[10px] text-green-100/80 uppercase tracking-[0.15em] mt-1">
                   {label}
                 </span>
               </div>
@@ -194,13 +194,13 @@ const NextPrayerHero = memo(function NextPrayerHero({
         <div className="flex items-center gap-2 mt-1">
           <Link
             to="/quran"
-            className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm border border-white/20 text-white text-xs font-semibold px-3.5 py-2 rounded-xl hover:bg-white/25 transition-colors active:scale-95"
+            className="flex items-center gap-2 bg-white/20 backdrop-blur-md border border-white/20 text-white text-sm font-semibold px-5 py-3 rounded-2xl hover:bg-white/30 hover:-translate-y-0.5 hover:shadow-lg transition-all active:scale-95"
           >
             <BookOpen size={13} /> Quran
           </Link>
           <Link
             to="/intelligence"
-            className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm border border-white/20 text-white text-xs font-semibold px-3.5 py-2 rounded-xl hover:bg-white/25 transition-colors active:scale-95"
+            className="flex items-center gap-2 bg-white/20 backdrop-blur-md border border-white/20 text-white text-sm font-semibold px-5 py-3 rounded-2xl hover:bg-white/30 hover:-translate-y-0.5 hover:shadow-lg transition-all active:scale-95"
           >
             <Sparkles size={13} /> Mentor
           </Link>
