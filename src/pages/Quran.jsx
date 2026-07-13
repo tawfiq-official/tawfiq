@@ -752,7 +752,11 @@ function ReaderView({
   fontSize,
   adjustFontSize,
   verseRefs,
-}) {
+})
+
+
+
+{
   const [toast, setToast] = useState(false);
   const [jumpTo, setJumpTo] = useState("");
 
@@ -871,6 +875,8 @@ function ReaderView({
           </div>
         </div>
       </div>
+
+      <ReadingProgress verses={verses} verseRefs={verseRefs} />
 
       {readingMode === "mushaf" ? (
         <div

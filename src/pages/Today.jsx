@@ -218,29 +218,31 @@ dark:bg-background/90
 backdrop-blur-xl pb-28"
     >
       {/* Header */}
-      <header className="bg-background/95 backdrop-blur-md border-b border-border px-4 py-4">
-        <div className="max-w-md mx-auto flex items-center justify-between">
+      <header className="relative bg-gradient-to-b from-emerald-50 via-white to-white dark:from-zinc-900 dark:via-background dark:to-background border-b border-border/50 px-5 pt-8 pb-7">
+        <div className="max-w-md mx-auto flex items-center items-start justify-between">
           <div>
-            <h1 className="text-lg font-bold text-foreground leading-tight">
+            <h1 className="text-[2.25rem] font-extrabold tracking-[-0.04em] tracking-tight leading-none text-zinc-900 dark:text-white">
               {format(today, "EEEE, MMMM d")}
             </h1>
             {hijriStr && (
-              <p className="text-xs text-muted-foreground mt-0.5">{hijriStr}</p>
+              <p className="text-base text-zinc-400 dark:text-zinc-500 dark:text-zinc-400 font-medium mt-2 mt-0.5">
+                {hijriStr}
+              </p>
             )}
             <div
               className="
-    mt-1
+    mt-4
     animate-in
     fade-in
     slide-in-from-left-2
     duration-500
   "
             >
-              <p className="text-sm font-semibold text-green-600">
+              <p className="text-xl font-bold tracking-tight text-green-600">
                 Assalamu Alaikum 🤲
               </p>
 
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-sm text-zinc-500 text-muted-foreground mt-0.5">
                 {new Date().getHours() < 12
                   ? "☀️ Good Morning"
                   : new Date().getHours() < 18
@@ -252,7 +254,6 @@ backdrop-blur-xl pb-28"
                 </span>
               </p>
             </div>
-            <div className="w-14 h-1 rounded-full bg-green-600 mt-2" />
           </div>
           <div className="flex items-center gap-2">
             {isExempt && (
@@ -271,7 +272,10 @@ backdrop-blur-xl pb-28"
 w-11
 h-11
 rounded-full
-bg-green-50
+bg-white/80
+backdrop-blur-xl
+border border-white
+shadow-xl
 border
 border-green-100
 shadow-sm
@@ -431,7 +435,12 @@ animate-pulse
                 Today's Progress
               </p>
               <div className="grid grid-cols-3 gap-2">
-                <div className="text-center bg-green-50 dark:bg-green-950/30 rounded-xl py-3">
+                <div
+                  className="text-center bg-white/80
+backdrop-blur-xl
+border border-white
+shadow-xldark:bg-green-950/30 rounded-xl py-3"
+                >
                   <p className="text-2xl font-bold text-green-600 tabular-nums">
                     {onTimeCount}
                   </p>
